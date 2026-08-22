@@ -53,19 +53,30 @@ omarchy-restart-hypridle
 ```
 
 Pokud `~/.config/hypr/hypridle.conf` už máte upravený (jiné timeouty, vlastní
-`lock_cmd` apod.), místo přepsání radši ručně zkopírujte jen tyhle dva řádky
-do listeneru pro nečinnost:
+`lock_cmd` apod.), místo přepsání radši ručně zkopírujte jen tenhle listener
+pro nečinnost (bez `on-resume` - viz "Jak to funguje" níže, proč):
 
 ```
 listener {
     timeout = 150
     on-timeout = pidof hyprlock || sgc-launch-screensaver
-    on-resume = sgc-kill-screensaver
 }
 ```
 
 a `omarchy-hooks/sgc-hypridle.conf` pak vytvořte jako kopii vašeho
 výsledného `hypridle.conf` (na něj se `post-update` hook odkazuje).
+
+Dále v `~/.config/hypr/looknfeel.conf` (nebo kamkoli do vaší Hyprland
+konfigurace) nastavte:
+
+```
+cursor {
+    no_warps = true
+}
+```
+
+Bez toho Hyprland při fokusu nově namapovaného okna spořiče warpuje reálný
+kurzor, což mimo jiné může matoucím způsobem probliknout obraz (viz níže).
 
 ## Jak to funguje
 
@@ -78,9 +89,20 @@ výsledného `hypridle.conf` (na něj se `post-update` hook odkazuje).
 - Každá instance `mpv` startuje pozastavená s vlastním IPC socketem; jakmile
   jsou všechny sockety připravené, skript je odpauzuje v rychlém sledu, aby
   přehrávání na všech monitorech začalo prakticky ve stejný okamžik.
-- Ukončení (klávesa/tlačítko myši/scroll/pohyb kurzoru) řeší `mpv-input.conf`
-  a polling pozice kurzoru přímo ve skriptu, stejně jako to dělá výchozí
-  Omarchy screensaver.
+- Ukončení klávesou/tlačítkem myši/scrollem řeší `mpv-input.conf`; pohyb myši
+  bez kliknutí řeší přesné porovnání `hyprctl cursorpos` přímo ve skriptu
+  (mpv nemá event na "jakýkoli pohyb").
+- `hypridle`'s `on-resume` se pro tenhle listener záměrně NEPOUŽÍVÁ. Nově
+  namapované fullscreen okno spořiče se objeví přesně pod (nehybným)
+  kurzorem, což vyvolá pointer "enter" event - Hyprlandův `ext-idle-notify`
+  to i tak vyhodnotí jako aktivitu (nezávisle na `cursor:no_warps`, ten řeší
+  jen skutečné warpy, ne enter/leave). S `on-resume` navěšeným na tenhle
+  listener hypridle spořič zabil do ~1s od spuštění, pokaždé. Proto
+  ukončení řeší jen `sgc-launch-screensaver` sám (přesná souřadnice kurzoru,
+  kterou enter/leave nezmění) + `mpv-input.conf`.
+- `cursor.no_warps = true` (viz Instalace) řeší jiný, souběžný problém:
+  fokus nově namapovaného okna defaultně warpuje reálný kurzor, což se
+  navenek projevovalo jako krátké probliknutí spořiče.
 - `omarchy-hooks/post-update` je Omarchy hook (`~/.config/omarchy/hooks/post-update`),
   který se spustí po každém `omarchy update`. Omarchy migrace v minulosti
   `hypridle.conf` přepisovaly zpět na výchozí stav — hook porovná aktuální

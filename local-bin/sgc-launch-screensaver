@@ -22,15 +22,21 @@
 # after it appeared. The `silent` workspace target avoids any focus/cursor
 # change entirely, so launching no longer self-triggers a kill.
 #
-# Dismissal does NOT rely on hypridle's on-resume (Omarchy's own stock
-# screensaver doesn't either - its hypridle listener has no on-resume at
-# all). Instead, like the stock omarchy-screensaver script watching stdin
-# directly, this script watches for real input itself: mpv is bound to quit
-# on essentially any key/click/scroll (mpv-input.conf), and a cursor-position
-# poll below catches plain mouse movement, which mpv has no event for. Since
-# we don't hold direct PIDs (dispatch exec detaches from this script), we
-# watch via `pgrep -f` count instead: if one instance quits from its own
-# keypress, or the cursor moves, kill whatever's left.
+# Dismissal: mpv quits itself on any key/click/scroll (mpv-input.conf) for
+# whichever instance has focus, and the watchdog below catches plain mouse
+# movement via an exact cursor-position diff (mpv has no "any motion"
+# event to bind).
+#
+# hypridle's on-resume is deliberately NOT used for this (see hypridle.conf):
+# the newly-mapped fullscreen window ends up under the already-stationary
+# cursor, which fires a pointer "enter" on it - Hyprland's ext-idle-notify
+# counts that as activity even with cursor:no_warps set (no_warps only
+# blocks explicit warps, not enter/leave from a window appearing under a
+# still cursor). With on-resume wired up, hypridle saw a false "Resumed"
+# and killed the screensaver within ~1s of it appearing, every time,
+# regardless of cursor:no_warps. The watchdog below doesn't have this
+# problem: it compares exact `hyprctl cursorpos` coordinates, which an
+# enter/leave event does not change (only genuine movement does).
 #
 # Each instance starts paused (--pause) with its own IPC socket. Once all
 # sockets exist (windows mapped), an unpause command is fired at all of them
