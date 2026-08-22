@@ -1,0 +1,109 @@
+#!/bin/bash
+
+# Launches the SGC (Stargate Command) logo video as a fullscreen screensaver
+# on every monitor, replacing Omarchy's stock text-effect screensaver.
+#
+# Reuses the class "org.omarchy.screensaver" on purpose: Omarchy's own
+# windowrule (apps/system.conf) already makes that class fullscreen/float/
+# slide-in. Appending any suffix to the class (e.g. ".sgc") breaks the
+# fullscreen request for reasons not worth re-deriving, so don't rename it.
+#
+# Windows are spawned via `hyprctl dispatch exec` (not a plain background
+# `mpv &`) because that's what actually maps each instance onto its target
+# monitor - backgrounding mpv directly from this script mapped every
+# instance onto the same (first) monitor instead.
+#
+# Each instance is targeted at its monitor via `[workspace ID silent]`
+# (ID = that monitor's own currently-active workspace), NOT via
+# `dispatch focusmonitor`. focusmonitor warps the real cursor to switch
+# monitor focus, which hypridle's ext-idle-notify sees as genuine input
+# activity - that immediately fired hypridle's on-resume (sgc-kill-
+# screensaver) within ~1s of launch, silently killing the screensaver right
+# after it appeared. The `silent` workspace target avoids any focus/cursor
+# change entirely, so launching no longer self-triggers a kill.
+#
+# Dismissal does NOT rely on hypridle's on-resume (Omarchy's own stock
+# screensaver doesn't either - its hypridle listener has no on-resume at
+# all). Instead, like the stock omarchy-screensaver script watching stdin
+# directly, this script watches for real input itself: mpv is bound to quit
+# on essentially any key/click/scroll (mpv-input.conf), and a cursor-position
+# poll below catches plain mouse movement, which mpv has no event for. Since
+# we don't hold direct PIDs (dispatch exec detaches from this script), we
+# watch via `pgrep -f` count instead: if one instance quits from its own
+# keypress, or the cursor moves, kill whatever's left.
+#
+# Each instance starts paused (--pause) with its own IPC socket. Once all
+# sockets exist (windows mapped), an unpause command is fired at all of them
+# back-to-back so playback actually starts in the same instant on every
+# monitor - relying on independent decode-start timing instead would let
+# multi-monitor instances drift out of phase.
+
+VIDEO="$HOME/.local/share/sgc-screensaver/sgc.mp4"
+INPUT_CONF="$HOME/.local/share/sgc-screensaver/mpv-input.conf"
+APP_ID="org.omarchy.screensaver"
+IPC_DIR="/tmp/sgc-screensaver-$$"
+
+# Exit early if the screensaver (this one, or the stock one) is already running
+pgrep -f "$APP_ID" &>/dev/null && exit 0
+
+[[ -f "$VIDEO" ]] || exit 1
+
+# Silently quit Walker on overlay
+walker -q &>/dev/null
+
+mkdir -p "$IPC_DIR"
+sockets=()
+monitor_count=0
+
+for ws in $(hyprctl monitors -j | jq -r '.[] | .activeWorkspace.id'); do
+  sock="$IPC_DIR/$monitor_count.sock"
+  sockets+=("$sock")
+  hyprctl dispatch exec "[workspace $ws silent] mpv \
+    --loop=inf \
+    --fullscreen \
+    --no-osc \
+    --no-osd-bar \
+    --input-conf=$INPUT_CONF \
+    --input-ipc-server=$sock \
+    --pause \
+    --cursor-autohide=always \
+    --keep-open=yes \
+    --really-quiet \
+    --stop-screensaver=no \
+    --speed=0.5 \
+    --wayland-app-id=$APP_ID \
+    --title=\"SGC Screensaver\" \
+    $VIDEO"
+  monitor_count=$((monitor_count + 1))
+done
+
+# Wait for every instance's IPC socket to appear (mpv creates it once ready)
+deadline=$((SECONDS + 5))
+for sock in "${sockets[@]}"; do
+  while [[ ! -S "$sock" && $SECONDS -lt $deadline ]]; do
+    sleep 0.02
+  done
+done
+
+# Unpause all instances back-to-back so they start playing in sync
+for sock in "${sockets[@]}"; do
+  echo '{"command":["set_property","pause",false]}' | socat - "UNIX-CONNECT:$sock" &>/dev/null &
+done
+wait
+
+rm -rf "$IPC_DIR"
+
+# Wait for all instances to finish mapping before we start counting them
+sleep 0.5
+
+start_pos=$(hyprctl cursorpos)
+while true; do
+  running=$(pgrep -cf "$APP_ID")
+  pos=$(hyprctl cursorpos)
+  if [[ "$running" -lt "$monitor_count" || "$pos" != "$start_pos" ]]; then
+    break
+  fi
+  sleep 0.3
+done
+
+pkill -f "$APP_ID" &>/dev/null

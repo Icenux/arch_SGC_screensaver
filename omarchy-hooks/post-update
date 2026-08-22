@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Omarchy migrations have overwritten ~/.config/hypr/hypridle.conf back to
+# stock (omarchy-launch-screensaver, lock timeout 151/152) before - see
+# grep hypridle ~/.local/share/omarchy/migrations/*.sh for history. This
+# re-applies the SGC screensaver wiring (sgc-launch-screensaver, 300s lock)
+# after every update so a future migration can't silently revert it.
+
+SRC="$HOME/.config/omarchy/hooks/sgc-hypridle.conf"
+DEST="$HOME/.config/hypr/hypridle.conf"
+
+if ! cmp -s "$SRC" "$DEST"; then
+  cp "$SRC" "$DEST"
+  omarchy-restart-hypridle
+fi

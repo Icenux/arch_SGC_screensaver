@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Stops the SGC video screensaver (see sgc-launch-screensaver). Kept as its
+# own script, rather than an inline pkill in hypridle.conf, because pkill -f
+# matches full command lines: an inline `pkill -f org.omarchy.screensaver` in
+# hypridle.conf would match its own invoking shell command (which contains
+# that same string) and kill itself instead of just mpv.
+
+pkill -f "wayland-app-id=org.omarchy.screensaver" 2>/dev/null
+exit 0
