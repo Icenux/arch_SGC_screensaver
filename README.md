@@ -1,10 +1,10 @@
 # SGC Screensaver
 
-[![Release](https://img.shields.io/github/v/release/Luquas95/omarchy-SGC-screensaver)](https://github.com/Luquas95/omarchy-SGC-screensaver/releases)
+[![Release](https://img.shields.io/github/v/release/Icenux/arch_SGC_screensaver)](https://github.com/Icenux/arch_SGC_screensaver/releases)
 [![Platform](https://img.shields.io/badge/platform-Sway%20%2F%20wlroots-blue?logo=linux&logoColor=white)](https://swaywm.org/)
 [![Shell](https://img.shields.io/badge/language-bash-green)](https://www.gnu.org/software/bash/)
 [![License](https://img.shields.io/badge/license-MIT-yellow)](https://opensource.org/license/MIT)
-[![Stars](https://img.shields.io/github/stars/Luquas95/omarchy-SGC-screensaver?style=social)](https://github.com/Luquas95/omarchy-SGC-screensaver)
+[![Stars](https://img.shields.io/github/stars/Icenux/arch_SGC_screensaver?style=social)](https://github.com/Icenux/arch_SGC_screensaver)
 
 A custom screensaver for Sway/wlroots that replaces the stock idle screen
 with a looping video of the Stargate Command logo, fullscreen on every
@@ -45,7 +45,7 @@ if you don't have it installed, that call just silently no-ops.
 ## Installation
 
 ```bash
-git clone https://github.com/Luquas95/omarchy-SGC-screensaver.git
+git clone https://github.com/Icenux/arch_SGC_screensaver.git
 cd omarchy-SGC-screensaver
 
 mkdir -p ~/.local/bin ~/.local/share/sgc-screensaver
