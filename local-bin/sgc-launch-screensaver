@@ -7,7 +7,7 @@
 # to dodge false idle-resume triggers aren't needed here: swayidle's `resume`
 # handler (wired in sway config) does the killing instead.
 
-VERSION="1.1.0"
+VERSION="1.1.1"
 case "${1:-}" in
   --version|-V) echo "sgc-screensaver $VERSION"; exit 0 ;;
 esac
