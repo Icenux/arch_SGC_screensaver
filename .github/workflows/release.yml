@@ -73,8 +73,30 @@ jobs:
           test -f /usr/share/sgc-screensaver/mpv-input.conf
           test -x /usr/bin/sgc-kill-screensaver
 
+  test-install-arch:
+    needs: build
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: packages
+          path: rel
+      - name: Install the package
+        run: |
+          pacman -Syu --noconfirm
+          pacman -U --noconfirm "$PWD"/rel/sgc-screensaver-*-any.pkg.tar.zst
+      - name: The installed files are in place
+        run: |
+          out=$(sgc-launch-screensaver --version)
+          echo "$out"
+          test "$out" = "sgc-screensaver ${GITHUB_REF_NAME}"
+          test -f /usr/share/sgc-screensaver/sgc.mp4
+          test -f /usr/share/sgc-screensaver/mpv-input.conf
+          test -x /usr/bin/sgc-kill-screensaver
+
   release:
-    needs: test-install
+    needs: [test-install, test-install-arch]
     runs-on: ubuntu-latest
     permissions:
       contents: write

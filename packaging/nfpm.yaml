@@ -1,4 +1,4 @@
-# The .deb of sgc-screensaver, called by packaging/package.sh. The scripts go to /usr/bin and the video
+# The .deb and the Arch package (.pkg.tar.zst) of sgc-screensaver, called by packaging/package.sh. The scripts go to /usr/bin and the video
 # with the mpv key bindings to /usr/share/sgc-screensaver (sgc-launch-screensaver looks in the user's
 # ~/.local/share/sgc-screensaver first). The swayidle clause cannot be installed system-wide: it has to be
 # merged into the user's own Sway config, the snippet is installed as sgc-idle.conf. Besides that the
@@ -27,6 +27,13 @@ recommends:
   - sway
   - swayidle
 
+overrides:
+  archlinux:
+    depends:
+      - bash
+      - mpv
+      - jq
+
 contents:
   - src: local-bin/sgc-launch-screensaver
     dst: /usr/bin/sgc-launch-screensaver
@@ -42,12 +49,18 @@ contents:
     dst: /usr/share/sgc-screensaver/sgc-idle.conf
   - src: LICENSE
     dst: /usr/share/doc/sgc-screensaver/copyright
+    packager: deb
 
   # the Icenux package source: the files lie next to the application, postinst.sh puts them in place
   - src: packaging/files/icenux.asc
     dst: /usr/share/sgc-screensaver/icenux.asc
+    packager: deb
   - src: packaging/files/icenux.list
     dst: /usr/share/sgc-screensaver/icenux.list
+    packager: deb
+  - src: LICENSE
+    dst: /usr/share/licenses/sgc-screensaver/LICENSE
+    packager: archlinux
 
 scripts:
   postinstall: packaging/files/postinst.sh
