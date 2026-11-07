@@ -7,8 +7,16 @@
 # to dodge false idle-resume triggers aren't needed here: swayidle's `resume`
 # handler (wired in sway config) does the killing instead.
 
-VIDEO="$HOME/.local/share/sgc-screensaver/sgc.mp4"
-INPUT_CONF="$HOME/.local/share/sgc-screensaver/mpv-input.conf"
+VERSION="1.1.0"
+case "${1:-}" in
+  --version|-V) echo "sgc-screensaver $VERSION"; exit 0 ;;
+esac
+
+# Files copied by hand live in the user's home; the Debian package installs them to /usr/share.
+DATA_DIR="$HOME/.local/share/sgc-screensaver"
+[[ -f "$DATA_DIR/sgc.mp4" ]] || DATA_DIR=/usr/share/sgc-screensaver
+VIDEO="$DATA_DIR/sgc.mp4"
+INPUT_CONF="$DATA_DIR/mpv-input.conf"
 APP_ID="org.sgc.screensaver"
 
 pgrep -f "wayland-app-id=$APP_ID" &>/dev/null && exit 0
