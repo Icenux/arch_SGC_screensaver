@@ -1,0 +1,53 @@
+# The .deb of sgc-screensaver, called by packaging/package.sh. The scripts go to /usr/bin and the video
+# with the mpv key bindings to /usr/share/sgc-screensaver (sgc-launch-screensaver looks in the user's
+# ~/.local/share/sgc-screensaver first). The swayidle clause cannot be installed system-wide: it has to be
+# merged into the user's own Sway config, the snippet is installed as sgc-idle.conf. Besides that the
+# package sets up the shared Icenux APT repository (github.com/Icenux/icenux, by packaging/files/postinst.sh),
+# so later versions arrive with the ordinary system update.
+name: sgc-screensaver
+arch: all
+platform: linux
+version: ${VERSION}
+release: 1
+section: utils
+priority: optional
+maintainer: Lukas <https://github.com/Icenux/arch_SGC_screensaver>
+description: |-
+  Stargate Command screensaver for Sway/wlroots.
+  A looping logo video on every output, driven by swayidle and mpv.
+vendor: Icenux
+homepage: https://github.com/Icenux/arch_SGC_screensaver
+license: MIT
+
+depends:
+  - bash
+  - mpv
+  - jq
+recommends:
+  - sway
+  - swayidle
+
+contents:
+  - src: local-bin/sgc-launch-screensaver
+    dst: /usr/bin/sgc-launch-screensaver
+    file_info: { mode: 0755 }
+  - src: local-bin/sgc-kill-screensaver
+    dst: /usr/bin/sgc-kill-screensaver
+    file_info: { mode: 0755 }
+  - src: sgc-screensaver/sgc.mp4
+    dst: /usr/share/sgc-screensaver/sgc.mp4
+  - src: sgc-screensaver/mpv-input.conf
+    dst: /usr/share/sgc-screensaver/mpv-input.conf
+  - src: sway/sgc-idle.conf
+    dst: /usr/share/sgc-screensaver/sgc-idle.conf
+  - src: LICENSE
+    dst: /usr/share/doc/sgc-screensaver/copyright
+
+  # the Icenux package source: the files lie next to the application, postinst.sh puts them in place
+  - src: packaging/files/icenux.asc
+    dst: /usr/share/sgc-screensaver/icenux.asc
+  - src: packaging/files/icenux.list
+    dst: /usr/share/sgc-screensaver/icenux.list
+
+scripts:
+  postinstall: packaging/files/postinst.sh

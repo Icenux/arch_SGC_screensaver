@@ -44,9 +44,23 @@ if you don't have it installed, that call just silently no-ops.
 
 ## Installation
 
+From the Icenux package repository (Debian / Ubuntu / Mint) — later versions then arrive with `apt upgrade`:
+
+```bash
+sudo curl -fsSL https://icenux.github.io/icenux/icenux.asc -o /usr/share/keyrings/icenux.asc
+echo 'deb [signed-by=/usr/share/keyrings/icenux.asc] https://icenux.github.io/icenux/apt ./' \
+  | sudo tee /etc/apt/sources.list.d/icenux.list
+sudo apt update && sudo apt install sgc-screensaver
+```
+
+The package installs the scripts to `/usr/bin` and the video to `/usr/share/sgc-screensaver`.
+Then merge `/usr/share/sgc-screensaver/sgc-idle.conf` into your Sway config (see below).
+
+From source:
+
 ```bash
 git clone https://github.com/Icenux/arch_SGC_screensaver.git
-cd omarchy-SGC-screensaver
+cd arch_SGC_screensaver
 
 mkdir -p ~/.local/bin ~/.local/share/sgc-screensaver
 
