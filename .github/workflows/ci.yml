@@ -53,12 +53,15 @@ jobs:
       - name: The packages contain the program, the video and the right dependencies
         run: |
           cd dist/release
-          dpkg-deb -c sgc-screensaver_all.deb | grep -q ' ./usr/bin/sgc-launch-screensaver$'
-          dpkg-deb -c sgc-screensaver_all.deb | grep -q ' ./usr/share/sgc-screensaver/sgc.mp4$'
-          dpkg-deb -f sgc-screensaver_all.deb Depends | grep -q 'mpv'
-          tar --zstd -tf sgc-screensaver-*.pkg.tar.zst | grep -q '^usr/bin/sgc-launch-screensaver$'
-          tar --zstd -tf sgc-screensaver-*.pkg.tar.zst | grep -q '^usr/share/sgc-screensaver/sgc.mp4$'
+          # Capture each listing first: `tar -t | grep -q` under pipefail fails with SIGPIPE when grep exits early.
+          deb_files=$(dpkg-deb -c sgc-screensaver_all.deb)
+          arch_files=$(tar --zstd -tf sgc-screensaver-*.pkg.tar.zst)
           pkginfo=$(tar --zstd -xOf sgc-screensaver-*.pkg.tar.zst .PKGINFO)
+          grep -q ' ./usr/bin/sgc-launch-screensaver$' <<< "$deb_files"
+          grep -q ' ./usr/share/sgc-screensaver/sgc.mp4$' <<< "$deb_files"
+          dpkg-deb -f sgc-screensaver_all.deb Depends | grep -q 'mpv'
+          grep -q '^usr/bin/sgc-launch-screensaver$' <<< "$arch_files"
+          grep -q '^usr/share/sgc-screensaver/sgc.mp4$' <<< "$arch_files"
           grep -q '^depend = mpv$' <<< "$pkginfo"
           grep -q '^depend = jq$' <<< "$pkginfo"
           # nfpm turns recommends into optdepend: the names must exist on Arch (they are the same as on Debian)
