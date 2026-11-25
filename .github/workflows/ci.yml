@@ -1,0 +1,68 @@
+name: CI
+# Syntax check, ShellCheck, a smoke test of the scripts and a trial build of both packages on every PR and
+# push to main. nfpm is pinned (version + SHA256) like in release.yml: bump both files together.
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+defaults:
+  run:
+    shell: bash
+env:
+  NFPM_VERSION: "2.49.0"
+  NFPM_SHA256: "2afaa5ffb5e3493402e31e7c67a5a1fb42133e3f66fc315ca0051934125561c7"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Syntax
+        run: |
+          bash -n local-bin/sgc-launch-screensaver local-bin/sgc-kill-screensaver \
+            legacy-hyprland/omarchy-hooks/post-update packaging/package.sh tests/smoke.sh
+          sh -n packaging/files/postinst.sh
+      - name: ShellCheck
+        run: |
+          shellcheck local-bin/sgc-launch-screensaver local-bin/sgc-kill-screensaver \
+            legacy-hyprland/omarchy-hooks/post-update packaging/package.sh packaging/files/postinst.sh tests/smoke.sh
+      - name: Smoke test (launcher and kill script with stand-ins, nothing real is started)
+        run: bash tests/smoke.sh
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: nfpm
+        run: |
+          curl -fsSL -o /tmp/nfpm.tgz \
+            "https://github.com/goreleaser/nfpm/releases/download/v${NFPM_VERSION}/nfpm_${NFPM_VERSION}_Linux_x86_64.tar.gz"
+          echo "${NFPM_SHA256}  /tmp/nfpm.tgz" | sha256sum -c -
+          sudo tar -xzf /tmp/nfpm.tgz -C /usr/local/bin nfpm
+      - name: Build both packages
+        run: bash packaging/package.sh "$(sed -n 's/^VERSION="\(.*\)"/\1/p' local-bin/sgc-launch-screensaver | head -1)"
+      - name: The packages contain the program, the video and the right dependencies
+        run: |
+          cd dist/release
+          # Capture each listing first: `tar -t | grep -q` under pipefail fails with SIGPIPE when grep exits early.
+          deb_files=$(dpkg-deb -c sgc-screensaver_all.deb)
+          arch_files=$(tar --zstd -tf sgc-screensaver-*.pkg.tar.zst)
+          pkginfo=$(tar --zstd -xOf sgc-screensaver-*.pkg.tar.zst .PKGINFO)
+          grep -q ' ./usr/bin/sgc-launch-screensaver$' <<< "$deb_files"
+          grep -q ' ./usr/share/sgc-screensaver/sgc.mp4$' <<< "$deb_files"
+          dpkg-deb -f sgc-screensaver_all.deb Depends | grep -q 'mpv'
+          grep -q '^usr/bin/sgc-launch-screensaver$' <<< "$arch_files"
+          grep -q '^usr/share/sgc-screensaver/sgc.mp4$' <<< "$arch_files"
+          grep -q '^depend = mpv$' <<< "$pkginfo"
+          grep -q '^depend = jq$' <<< "$pkginfo"
+          # nfpm turns recommends into optdepend: the names must exist on Arch (they are the same as on Debian)
+          grep -q '^optdepend = swayidle$' <<< "$pkginfo"

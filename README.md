@@ -56,6 +56,12 @@ sudo apt update && sudo apt install sgc-screensaver
 The package installs the scripts to `/usr/bin` and the video to `/usr/share/sgc-screensaver`.
 Then merge `/usr/share/sgc-screensaver/sgc-idle.conf` into your Sway config (see below).
 
+On Arch Linux, install the package from the [latest release](https://github.com/Icenux/arch_SGC_screensaver/releases/latest). It puts the files in the same places and lists `sway` and `swayidle` as optional dependencies:
+
+```bash
+sudo pacman -U sgc-screensaver-X.Y.Z-1-any.pkg.tar.zst
+```
+
 From source:
 
 ```bash
@@ -114,6 +120,18 @@ rm -rf ~/.local/share/sgc-screensaver
 
 Then remove the `timeout 150 ...` clause and the `for_window` rule from
 `~/.config/sway/config` and `sway reload`.
+
+## Development
+
+CI (`.github/workflows/ci.yml`) runs on every pull request. The same checks locally:
+
+```bash
+shellcheck local-bin/sgc-launch-screensaver local-bin/sgc-kill-screensaver tests/smoke.sh
+bash tests/smoke.sh      # needs jq
+```
+
+The smoke test replaces `swaymsg`, `mpv`, `walker`, `pgrep` and `pkill` with stand-ins, so it never starts or
+kills a real screensaver. Packages are built with `bash packaging/package.sh X.Y.Z` (needs nfpm).
 
 ## License
 
